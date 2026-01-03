@@ -62,23 +62,4 @@ async function analyzer_code(code, error_message) {
     return json_response;
 }
 
-// Teste rápido (remover depois)
-const testeCode = `
-function soma(a, b) {
-  return a + b
-}
-console.log(soma(5, "10"));
-`;  
-
-const testeErro = "NaN - resultado inesperado";
-
-analyzer_code(testeCode, testeErro)
-  .then(resultado => {
-    console.log("=== RESPOSTA DO GEMINI ===");
-    console.log(JSON.stringify(resultado, null, 2));
-  })
-  .catch(erro => {
-    console.error("ERRO:", erro);
-  });
-
 module.exports = { analyzer_code }

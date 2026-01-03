@@ -22,7 +22,7 @@ async function analyzer_code_controller(req, res) {
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: error_message
+            error: error.message
         });
     }
 }
