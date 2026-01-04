@@ -2,17 +2,13 @@ const { analyzer_code } = require('../services/gemini_service')
 
 async function analyzer_code_controller(req, res) {
     try {
-        const { code, error_message } = req.body;
+        const { code} = req.body;
 
         if (!code) {
             return res.status(400).json({ error: 'code é obrigatório'})
         }
-
-        if (!error_message) {
-            return res.status(400).json({ error: 'error_message é obrigatório'})
-        }
-
-        const analyze = await analyzer_code(code, error_message)
+        
+        const analyze = await analyzer_code(code)
 
         res.status(200).json({
             success: true,
