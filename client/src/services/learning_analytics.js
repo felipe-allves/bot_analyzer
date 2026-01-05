@@ -1,69 +1,77 @@
 import { getHistory } from './gamification'
 
-const LEARNING_WINDOW = 10
+const LEARNING_WINDOW = 8
 
 export const analyzeLearning = () => {
   const history = getHistory()
   
   if (history.length < 5) {
-    return {
-      status: 'insufficient_data',
-      message: 'Continue analisando para ver seu progresso',
-      progress: 0
-    }
+    return null
   }
 
   const recent = history.slice(0, LEARNING_WINDOW)
   const older = history.slice(LEARNING_WINDOW, LEARNING_WINDOW * 2)
 
-  const recentErrorRate = recent.filter(h => h.has_issues).length / recent.length
-  const olderErrorRate = older.length > 0 
-    ? older.filter(h => h.has_issues).length / older.length 
-    : recentErrorRate
+  if (older.length < 3) {
+    return null
+  }
 
+  const recentErrors = recent.filter(h => h.has_issues).length
+  const olderErrors = older.filter(h => h.has_issues).length
+  
+  const recentErrorRate = recentErrors / recent.length
+  const olderErrorRate = olderErrors / older.length
+  
   const improvement = olderErrorRate - recentErrorRate
 
   const repeatedErrors = findRepeatedErrors(recent)
-  
+  const hasRecentError = recent[0]?.has_issues
+
   let status = 'stable'
-  let message = 'Você está mantendo um bom ritmo'
+  let message = 'Mantendo desempenho estável'
   
-  if (improvement > 0.2) {
-    status = 'improving'
-    message = 'Excelente! Você está cometendo menos erros'
-  } else if (improvement < -0.2) {
-    status = 'regressing'
-    message = 'Atenção! Taxa de erros aumentou recentemente'
-  }
-
-  if (repeatedErrors.length > 0) {
+  if (hasRecentError && repeatedErrors.length > 0) {
     status = 'repeated_errors'
-    message = `Você está repetindo erros de: ${repeatedErrors.join(', ')}`
+    message = `Atenção: repetindo erros em ${repeatedErrors[0]}`
+  } else if (improvement > 0.25) {
+    status = 'improving'
+    message = 'Excelente! Menos erros que antes'
+  } else if (improvement > 0.1) {
+    status = 'improving'
+    message = 'Progredindo bem, continue assim'
+  } else if (improvement < -0.25) {
+    status = 'regressing'
+    message = 'Taxa de erros aumentou recentemente'
+  } else if (improvement < -0.1) {
+    status = 'regressing'
+    message = 'Mais erros nas últimas análises'
   }
 
-  const progress = Math.max(0, Math.min(100, 50 + (improvement * 100)))
+  const progress = Math.max(10, Math.min(100, 50 + (improvement * 150)))
 
   return {
     status,
     message,
     progress: Math.round(progress),
-    recentErrorRate: Math.round(recentErrorRate * 100),
-    improvement: Math.round(improvement * 100),
-    repeatedErrors
+    shouldShow: true
   }
 }
 
 const findRepeatedErrors = (history) => {
-  const categoryCount = {}
+  if (history.length < 4) return []
   
-  history.forEach(item => {
-    if (item.has_issues && item.category) {
-      categoryCount[item.category] = (categoryCount[item.category] || 0) + 1
-    }
+  const recentCategories = history
+    .slice(0, 4)
+    .filter(h => h.has_issues && h.category)
+    .map(h => h.category)
+  
+  const categoryCount = {}
+  recentCategories.forEach(cat => {
+    categoryCount[cat] = (categoryCount[cat] || 0) + 1
   })
 
   return Object.entries(categoryCount)
-    .filter(([_, count]) => count >= 3)
+    .filter(([_, count]) => count >= 2)
     .map(([category]) => category)
 }
 

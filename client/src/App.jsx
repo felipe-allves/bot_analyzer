@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import { 
   addPoints, 
@@ -8,6 +8,8 @@ import {
   getPoints, 
   getStats
 } from './services/gamification'
+import { analyzeLearning } from './services/learning_analytics'
+import { getTheme, toggleTheme, initTheme } from './services/theme'
 
 function App() {
   const [code, setCode] = useState('')
@@ -17,6 +19,18 @@ function App() {
   const [points, setPoints] = useState(getPoints())
   const [stats, setStats] = useState(getStats())
   const [newBadges, setNewBadges] = useState([])
+  const [theme, setThemeState] = useState(getTheme())
+  const [learningData, setLearningData] = useState(analyzeLearning())
+  const resultsRef = useRef(null)
+
+  useEffect(() => {
+    initTheme()
+  }, [])
+
+  const handleThemeToggle = () => {
+    const newTheme = toggleTheme()
+    setThemeState(newTheme)
+  }
 
   const handleAnalyze = async () => {
     if (!code.trim()) {
@@ -47,6 +61,14 @@ function App() {
       }
 
       setAnalysis(data.analyze)
+      setCode('')
+
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        })
+      }, 100)
 
       const newPoints = addPoints(10)
       setPoints(newPoints)
@@ -55,6 +77,9 @@ function App() {
 
       const updatedStats = updateStats(data.analyze)
       setStats(updatedStats)
+
+      const learning = analyzeLearning()
+      setLearningData(learning)
 
       const badges = checkBadges()
       if (badges.length > 0) {
@@ -69,11 +94,30 @@ function App() {
     }
   }
 
+  const getLearningIcon = () => {
+    switch(learningData.status) {
+      case 'improving':
+        return <i className="bi bi-graph-up-arrow" style={{ color: 'var(--success-text)' }}></i>
+      case 'regressing':
+        return <i className="bi bi-graph-down-arrow" style={{ color: 'var(--error-text)' }}></i>
+      case 'repeated_errors':
+        return <i className="bi bi-arrow-repeat" style={{ color: 'var(--error-text)' }}></i>
+      case 'stable':
+        return <i className="bi bi-dash-circle" style={{ color: 'var(--text-tertiary)' }}></i>
+      default:
+        return <i className="bi bi-info-circle" style={{ color: 'var(--text-tertiary)' }}></i>
+    }
+  }
+
   return (
     <div className="app">
+      <button className="theme-toggle" onClick={handleThemeToggle} aria-label="Toggle theme">
+        <i className={theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill'}></i>
+      </button>
+
       <div className="hero">
         <div className="logo">&lt;bot_analyzer/&gt;</div>
-        
+
         <h1 className="hero-title">Transforme erros em aprendizado</h1>
         
         <div className="editor-wrapper">
@@ -90,23 +134,46 @@ function App() {
             disabled={loading}
             className="btn-analyze"
           >
-            {loading ? 'Analisando...' : 'Analisar Código'}
+            {loading ? (
+              <>
+                <i className="bi bi-arrow-repeat spinning"></i>
+                {' '}Analisando...
+              </>
+            ) : (
+              'Analisar Código'
+            )}
           </button>
         </div>
 
         {error && (
           <div className="error-message">
-            {error}
+            <i className="bi bi-exclamation-triangle"></i> {error}
           </div>
         )}
       </div>
 
       {analysis && (
-        <div className="results">
+        <div className="results" ref={resultsRef}>
           <h2>Análise Completa</h2>
+
+          {learningData && learningData.shouldShow && (
+            <div className="learning-bar">
+              <div className="learning-bar-content">
+                <span className="learning-message">{learningData.message}</span>
+                <div className="learning-progress">
+                  <div 
+                    className={`learning-progress-fill ${learningData.status}`}
+                    style={{ width: `${learningData.progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          )}
           
           {analysis.has_issues !== undefined && (
             <div className={`status-badge ${analysis.has_issues ? 'has-issues' : 'clean'}`}>
+              <i className={analysis.has_issues ? 'bi bi-x-circle' : 'bi bi-check-circle'}></i>
+              {' '}
               {analysis.has_issues ? 'Problemas Encontrados' : 'Código Limpo'}
             </div>
           )}
@@ -117,33 +184,33 @@ function App() {
             <div className="analysis-grid">
               {analysis.error_type && (
                 <div className="analysis-card">
-                  <strong>Tipo do Erro</strong>
+                  <strong><i className="bi bi-bug"></i> Tipo do Erro</strong>
                   <p>{analysis.error_type}</p>
                 </div>
               )}
               {analysis.location && (
                 <div className="analysis-card">
-                  <strong>Localização</strong>
+                  <strong><i className="bi bi-geo-alt"></i> Localização</strong>
                   <p>{analysis.location}</p>
                 </div>
               )}
               <div className="analysis-card full">
-                <strong>Explicação</strong>
+                <strong><i className="bi bi-lightbulb"></i> Explicação</strong>
                 <p>{analysis.explanation}</p>
               </div>
               <div className="analysis-card full">
-                <strong>Solução</strong>
+                <strong><i className="bi bi-wrench"></i> Solução</strong>
                 <p>{analysis.solution}</p>
               </div>
               {analysis.best_practices && (
                 <div className="analysis-card full">
-                  <strong>Boas Práticas</strong>
+                  <strong><i className="bi bi-star"></i> Boas Práticas</strong>
                   <p>{analysis.best_practices}</p>
                 </div>
               )}
               {analysis.category && (
                 <div className="analysis-card">
-                  <strong>Categoria</strong>
+                  <strong><i className="bi bi-tag"></i> Categoria</strong>
                   <span className="badge">{analysis.category}</span>
                 </div>
               )}
@@ -152,7 +219,7 @@ function App() {
 
           {newBadges.length > 0 && (
             <div className="badges-earned-inline">
-              <h4>Conquistas Desbloqueadas</h4>
+              <h4><i className="bi bi-trophy"></i> Conquistas Desbloqueadas</h4>
               <div className="badges-list">
                 {newBadges.map(badge => (
                   <div key={badge.id} className="badge-earned">
