@@ -21,7 +21,10 @@ const analyzer_routes = require('./routes/analyzer_routes');
 
 app.use('/api/analyzer', analyzer_routes);
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-});
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.FRONTEND_URL
+      : 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }));

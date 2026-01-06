@@ -1,15 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
-import { 
-  addPoints, 
-  saveAnalysis, 
-  updateStats, 
-  checkBadges, 
-  getPoints, 
-  getStats
-} from './services/gamification'
+import { addPoints, saveAnalysis, updateStats, checkBadges, getPoints, getStats } from './services/gamification'
 import { analyzeLearning } from './services/learning_analytics'
 import { getTheme, toggleTheme, initTheme } from './services/theme'
+import { API_URL } from './config'
 
 function App() {
   const [code, setCode] = useState('')
@@ -44,7 +38,7 @@ function App() {
     setNewBadges([])
 
     try {
-      const response = await fetch('http://localhost:3001/api/analyzer/analyze', {
+      const response = await fetch(`${API_URL}/api/analyzer/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
