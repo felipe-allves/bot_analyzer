@@ -87,7 +87,8 @@ npm run dev
 ## Variáveis de Ambiente
 
 ### Backend (.env)
-\`\`\`
+
+```bash
 GEMINI_API_KEY=sua_chave_aqui
 PORT=3001
 NODE_ENV=production
@@ -95,7 +96,8 @@ FRONTEND_URL=https://seu-frontend.netlify.app
 ```
 
 ### Frontend (.env.local)
-```
+
+```bash
 VITE_API_URL=https://seu-backend.onrender.com
 ```
 
